@@ -83,4 +83,7 @@ urlpatterns = patterns('',
     url(r'^report-missing-component/(\d+)/$', 'creation.views.report_missing_component', name="report_missing_component"),
     url(r'^report-missing-component/reply/(\d+)/$', 'creation.views.report_missing_component_reply', name="report_missing_component_reply"),
     url(r'^report-missing-component/list/$', 'creation.views.report_missing_component_list', name="report_missing_component_list"),
+
+    # Additional Views Created for Payment Module
+    url(r'payment/tutorials/$', 'creation.views.list_all_published_tutorials', name="list_all_published_tutorials"),
 )

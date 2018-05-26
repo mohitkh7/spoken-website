@@ -1,0 +1,94 @@
+{% extends 'spoken/templates/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+{% load cmsdata %}
+{% load creationdata %}
+{% block title %}Tutorials Published{% endblock %}
+{% block uncompresscssblock %}
+    <link rel="stylesheet" href="{% static 'spoken/css/flip-scroll.min.css' %}" type="text/css" media="screen" charset="utf-8" />
+{% endblock %}
+{% block heading %}<i class="fa fa-list-ul"></i> Tutorials Published{% endblock %}
+{% block content %}
+    <form>
+        {{ form.as_p }}
+        <br><br>
+        <input type="submit" value="Filter" class="btn btn-success">
+        <input type="reset" value="Reset" class="btn btn-primary">
+    </form>
+    <div id="flip-scroll" class="table-responsive">
+        <table class="paleblue table table-condensed table-bordered table-hover table-striped">
+        {% if not published_tutorials|length %}
+            <tr>
+                <td colspan="5" class="col-center">List is empty!</td>
+            </tr>
+        {% else %}
+            <thead>
+                <th>#</th>
+                <th>Tutorial Topic</th>
+                <th>Tutorial Title</th>
+                <th>Contributor</th>
+                <th>Published At</th>
+            </thead>
+            <tbody>
+            {% for tutorial in published_tutorials %}
+                <tr class="{% cycle 'odd' 'even' %}">
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ tutorial.tutorial_detail.foss }}</td>
+                    <td>{{ tutorial.tutorial_detail.tutorial }}
+                    <td>{{ tutorial.script_user.first_name }} {{ tutorial.script_user.last_name }}</td>
+                    <td>{{ tutorial.publish_at }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        {% endif %}
+        </table>
+    </div>
+    <!-- Pagination -->
+    {% if published_tutorials.has_other_pages %}
+        <ul class="pagination">
+        {% if published_tutorials.has_previous %}
+            <li><a href="?page={{ published_tutorials.previous_page_number }}">&laquo;</a></li>
+        {% else %}
+            <li class="disabled"><span>&laquo;</span></li>
+        {% endif %}
+        {% for i in published_tutorials.paginator.page_range %}
+            {% if forloop.counter < 10 %}
+                {% if published_tutorials.number == i %}
+                    <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
+                {% else %}
+                    <li><a href="?page={{ i }}">{{ i }}</a></li>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        {% if published_tutorials.has_next %}
+            <li><a href="?page={{ published_tutorials.next_page_number }}">&raquo;</a></li>
+        {% else %}
+            <li class="disabled"><span>&raquo;</span></li>
+        {% endif %}
+        </ul>
+    {% endif %}
+
+{% endblock %}
+
+<!-- <html>
+	<body>	
+		<table>
+			<tr>
+				<th>Tutorial Category</th>
+				<th>Tutorial Title</th>
+				<th>Contributor</th>
+				<th>Published At</th>
+
+
+			 </tr>
+			{% for tutorial in published_tutorials %}
+			<tr>
+				<td>{{ tutorial.tutorial_resource.tutorial_detail.foss }}</td>
+				<td>{{ tutorial.tutorial_resource.tutorial_detail.tutorial }}</td>
+				<td>{{ tutorial.tutorial_resource.tutorial_detail.user }}</td>
+				<td>{{ tutorial.created }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</body>
+</html>	 -->

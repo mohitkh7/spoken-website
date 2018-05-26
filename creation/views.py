@@ -2819,3 +2819,26 @@ def update_assignment(request):
     context.update(csrf(request))
     return render(request, 'creation/templates/update_assignment.html', context)
 
+def list_all_published_tutorials(request):
+    form = PublishedTutorialFilterForm(request.GET)
+    tr_pub = TutorialResource.objects.all().filter(status = 1).order_by('-publish_at')
+    if form.is_valid():
+        start_date = form.cleaned_data['start_date']
+        end_date = form.cleaned_data['end_date']
+
+        print('test says I am in'+str(type(start_date)))
+
+        if start_date:
+            print('filtering_done')
+            tr_pub = tr_pub.filter(publish_at__gte = start_date)
+        if end_date:
+            tr_pub = tr_pub.filter(publish_at__lte = end_date)
+
+    page = request.GET.get('page')
+    tr_pub = get_page(tr_pub, page, 50)
+    context = {
+        'published_tutorials': tr_pub,
+        'media_url': settings.MEDIA_URL,
+        'form': form,
+    }
+    return render(request, 'creation/templates/list_all_published_tutorials.html', context)

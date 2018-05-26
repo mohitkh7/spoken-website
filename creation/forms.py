@@ -969,3 +969,17 @@ class UpdateAssignmentForm(forms.Form):
                 self.fields['tutorial'].choices =  [('', '-- Select tutorial --'),] + list(choices)
                 self.fields['tutorial'].widget.attrs = {}
                 self.fields['tutorial'].initial = initial_tut
+
+
+class PublishedTutorialFilterForm(forms.Form):
+    # contributor = forms.ChoiceField(
+    #     choices = [('','--Select Contributor')],
+    #     required = False
+    # )
+    start_date = forms.DateField(required=False)
+    end_date = forms.DateField(required=False)
+
+    # def __init__(self, *args, **kwargs):
+    #     super(PublishedTutorialFilterForm, self).__init__(*args, **kwargs)
+    #     contributor_list = (ContributorRole.objects.all()).values_list('id','user.first_name')
+    #     self.fields['contributor'].choices = contributor_list
