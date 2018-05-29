@@ -57,7 +57,7 @@
                     </div>
                 </div>
                  <input type="submit" value="Filter" class="btn btn-success">
-                <input type="reset" value="Reset" class="btn btn-primary">
+                <a href="?"  class="btn btn-primary">Clear</a>
             </div>
         </form>
         <div class="col-md-4">
@@ -109,47 +109,7 @@
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="{% static 'spoken/js/jquery.datetimepicker.js' %}"></script>
     <script>
-        /*
-        // ajax call to dynamically update language options
-        $('#id_foss').change(function(){
-            var url = '/creation/payment/ajax/languages/';
-            var foss = $('#id_foss').val();
-            var contributor = $('#id_contributor').val();
-            $.ajax({
-                url: url,
-                data: {
-                    'foss' : foss,
-                    'contributor': contributor,
-                },
-                success: function(data){
-                    $('#id_language').html(data);
-                }
-            });
-        });
-
-        // for updating foss
-        $('#id_contributor').change(function(){
-            var url = '/creation/payment/ajax/fosses';
-            var contributor = $('#id_contributor').val();
-            $.ajax({
-                url: url,
-                data: {
-                    'contributor': contributor,
-                },
-                success: function(data){
-                    $('#id_foss').html(data);
-                },
-            });
-        });
-        // for datetimepicker
-        $('.date').datetimepicker({
-            lang:'en',
-            timepicker:false,
-            format:'Y-m-d',
-            formatDate:'Y/m/d',
-            maxDate:'+1970/06/31', // tommorow date with in 6 month
-        });
-        */
+        // to dynamically get languages
         function load_languages(){
             var url = 'creation/payment/ajax/languages';
             var foss = $('#id_foss').val();
@@ -167,7 +127,7 @@
                 }
             });
         }
-
+        // to dynamically get fossee list for contributor
         function load_fosses(){
             var url = '/creation/payment/ajax/fosses';
             var contributor = $('#id_contributor').val();
@@ -183,7 +143,7 @@
                 },
             });
         }
-
+        // for initialization 
         $(document).ready(function(){
             contributor = $('#id_contributor').val();
             var foss = $('#id_foss').val();
@@ -191,6 +151,7 @@
             load_fosses();
             load_languages();
         });
+        // on changing any params it will call ajax
         $('#id_contributor').change(function(){
             load_fosses();
         });

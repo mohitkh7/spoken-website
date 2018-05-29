@@ -74,6 +74,7 @@ INSTALLED_APPS = (
     'nicedit',
     'report_builder',
     'compressor',
+    'django-dia',
 
     'cms',
     'creation',
