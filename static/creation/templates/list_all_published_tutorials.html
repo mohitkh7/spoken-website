@@ -169,10 +169,12 @@
         function load_fosses(){
             var url = '/creation/payment/ajax/fosses';
             var contributor = $('#id_contributor').val();
+            var foss = $('#id_foss').val();
             $.ajax({
                 url: url,
                 data: {
                     'contributor': contributor,
+                    'foss': foss,
                 },
                 success: function(data){
                     $('#id_foss').html(data);

@@ -2864,15 +2864,15 @@ def load_languages(request):
         print("test")
         print("----------"+str(user_id))
         language_list = TutorialResource.objects.filter(tutorial_detail__foss_id = foss_id, script_user = user_id).values_list('language','language__name').distinct()
-    print(language_list)
     return render(request,'creation/templates/language_dropdown_list_options.html',{'language_list':language_list})
 
 def load_fosses(request):
     user_id = request.GET.get('contributor')
+    existing_foss = request.GET.get('foss')
     if user_id == "":
+        print("no user")
         foss_list = FossCategory.objects.distinct().values_list('id','foss')
     else:
         foss_id_list = TutorialResource.objects.filter(script_user = user_id).values_list('tutorial_detail__foss_id').distinct()
         foss_list = FossCategory.objects.filter(id__in = foss_id_list).values_list('id','foss')
-    print(foss_list)
-    return render(request, 'creation/templates/foss_dropdown_list_options.html',{'foss_list': foss_list,})
+    return render(request, 'creation/templates/foss_dropdown_list_options.html',{'foss_list': foss_list, 'existing_foss': existing_foss})
