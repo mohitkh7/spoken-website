@@ -1,4 +1,9 @@
 <option value="">--- Select Language ---</option>
 {% for lang in language_list %}
-	<option value="{{ lang.0 }}">{{ lang.1 }}</option>
+	<option 
+		value="{{ lang.0 }}"
+		'{% if existing_language|stringformat:"s" == lang.0|stringformat:"s" %} selected {% endif %}'
+	>
+		{{ lang.1 }}
+	</option>
 {% endfor %}

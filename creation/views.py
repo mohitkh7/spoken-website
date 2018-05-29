@@ -2856,21 +2856,19 @@ def list_all_published_tutorials(request):
 def load_languages(request):
     foss_id = request.GET.get('foss')
     user_id = request.GET.get('contributor')
+    existing_language = request.GET.get('language')
     if foss_id == "":
         language_list = Language.objects.distinct().values_list('id','name')
     elif user_id == "":
         language_list = TutorialResource.objects.filter(tutorial_detail__foss_id = foss_id).values_list('language','language__name').distinct()
     else:
-        print("test")
-        print("----------"+str(user_id))
         language_list = TutorialResource.objects.filter(tutorial_detail__foss_id = foss_id, script_user = user_id).values_list('language','language__name').distinct()
-    return render(request,'creation/templates/language_dropdown_list_options.html',{'language_list':language_list})
+    return render(request,'creation/templates/language_dropdown_list_options.html',{'language_list':language_list, 'existing_language': existing_language})
 
 def load_fosses(request):
     user_id = request.GET.get('contributor')
     existing_foss = request.GET.get('foss')
     if user_id == "":
-        print("no user")
         foss_list = FossCategory.objects.distinct().values_list('id','foss')
     else:
         foss_id_list = TutorialResource.objects.filter(script_user = user_id).values_list('tutorial_detail__foss_id').distinct()
