@@ -2,6 +2,19 @@
 from django.contrib.auth.models import User
 from django.db import models
 
+import random
+
+def ran_value():
+    return random.randint(0,4)
+
+PAYMENT_STAGES = (
+    (0, 'Payment Due'),
+    (1, 'Payment Initiated'),
+    (2, 'Payment Forwarded'),
+    (3, 'Payment Done'),
+)
+
+
 class Language(models.Model):
     name = models.CharField(max_length=255, unique=True)
     user = models.ForeignKey(User)
@@ -190,13 +203,15 @@ class TutorialResource(models.Model):
     video_thumbnail_time = models.TimeField(default='00:00:00')
     video_user = models.ForeignKey(User, related_name='videos')
     video_status = models.PositiveSmallIntegerField(default=0)
-
+    payment_status = models.PositiveSmallIntegerField(default = ran_value(), choices = PAYMENT_STAGES)
     status = models.PositiveSmallIntegerField(default=0)
     version = models.PositiveSmallIntegerField(default=0)
     hit_count = models.PositiveIntegerField(default=0)
+    # 0 - due, 1 - initiated, 2 - forwarded, 3 - completed
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     publish_at = models.DateTimeField(null=True)
+
 
     class Meta:
         unique_together = (('tutorial_detail', 'language',),)

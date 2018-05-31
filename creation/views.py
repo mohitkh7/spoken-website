@@ -30,7 +30,6 @@ from creation.subtitles import *
 
 from . import services
 
-
 def humansize(nbytes):
     suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
     if nbytes == 0: return '0 B'
@@ -2822,7 +2821,8 @@ def update_assignment(request):
 
 def list_all_published_tutorials(request):
     form = PublishedTutorialFilterForm(request.GET)
-    tr_pub = TutorialResource.objects.filter(status = 1)
+    # status = 1 for published and script_user__groups = 5 for external contributors
+    tr_pub = TutorialResource.objects.filter(status = 1, script_user__groups__in = [5,]) 
     if form.is_valid():
         start_date = form.cleaned_data['start_date']
         end_date = form.cleaned_data['end_date']
@@ -2881,3 +2881,28 @@ def load_fosses(request):
         foss_id_list = TutorialResource.objects.filter(script_user = user_id).values_list('tutorial_detail__foss_id').distinct()
         foss_list = FossCategory.objects.filter(id__in = foss_id_list).values_list('id','foss')
     return render(request, 'creation/templates/foss_dropdown_list_options.html',{'foss_list': foss_list, 'existing_foss': existing_foss})
+
+def list_all_due_tutorials(request):
+    # tutorials to be switched from due to initiated
+    if request.method == "POST":
+        tr_sel = request.POST.getlist('selected_tutorials')
+        for tr_id in tr_sel:
+            mark_tutorial_as_payment_initiated(tr_id)
+
+    tr_due = TutorialResource.objects.filter(status = 1, script_user__groups__in = [5,], payment_status = 0)
+    tr_due = tr_due.order_by('publish_at')
+    #pagination
+    page = request.GET.get('page')
+    tr_due = get_page(tr_due, page, 10)
+    context = {
+        'due_tutorials': tr_due,
+        'collection': tr_due, # for pagination
+    }
+    return render(request, 'creation/templates/list_all_due_tutorials.html', context)
+
+def mark_tutorial_as_payment_initiated(tr_id):
+    tr_obj = TutorialResource.objects.get(id = tr_id)
+    tr_obj.payment_status = 1
+    # send notification and mail
+    tr_obj.save()
+    print("success")
