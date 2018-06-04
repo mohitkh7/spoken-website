@@ -7,6 +7,7 @@ import time
 from django.utils import timezone
 from decimal import Decimal
 from urllib import quote, unquote_plus, urlopen
+from itertools import islice, chain
 
 # Third Party Stuff
 from django.conf import settings
@@ -20,7 +21,9 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
-from django.db.models import Count
+from django.db.models import Count, F, Q
+from django.views.generic.list import ListView
+
 
 # Spoken Tutorial Stuff
 from cms.sortable import *
@@ -29,6 +32,43 @@ from creation.models import *
 from creation.subtitles import *
 
 from . import services
+
+
+class QuerySetChain(object):
+    """
+    Chains multiple subquerysets (possibly of different models) and behaves as
+    one queryset.  Supports minimal methods needed for use with
+    django.core.paginator.
+    """
+    #Reference - https://stackoverflow.com/questions/431628/how-to-combine-2-or-more-querysets-in-a-django-view
+
+    def __init__(self, *subquerysets):
+        self.querysets = subquerysets
+
+    def count(self):
+        """
+        Performs a .count() for all subquerysets and returns the number of
+        records as an integer.
+        """
+        return sum(qs.count() for qs in self.querysets)
+
+    def _clone(self):
+        "Returns a clone of this queryset chain"
+        return self.__class__(*self.querysets)
+
+    def _all(self):
+        "Iterates records in all subquerysets"
+        return chain(*self.querysets)
+
+    def __getitem__(self, ndx):
+        """
+        Retrieves an item or slice from the chained set of results from all
+        subquerysets.
+        """
+        if type(ndx) is slice:
+            return list(islice(self._all(), ndx.start, ndx.stop, ndx.step or 1))
+        else:
+            return islice(self._all(), ndx, ndx+1).next()
 
 def humansize(nbytes):
     suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
@@ -2885,17 +2925,23 @@ def load_fosses(request):
 def list_all_due_tutorials(request):
     # tutorials to be switched from due to initiated
     if request.method == "POST":
-        tr_sel = request.POST.getlist('selected_tutorials')
-        for tr_id in tr_sel:
-            mark_tutorial_as_payment_initiated(tr_id)
-
-    tr_due = TutorialResource.objects.filter(status = 1, script_user__groups__in = [5,], payment_status = 0)
+        initiate_payment(request)
+    tr_due_script = TutorialResource.objects.filter(status = 1, script_user__groups__in = [5,], payment_status = 0,)
+    tr_due_video = TutorialResource.objects.filter(status = 1, video_user__groups__in = [5,], payment_status = 0,)
+    # finding list of contributors who were not paid
+    script_contributors = tr_due_script.values_list('script_user', 'script_user__first_name', 'script_user__last_name', 'script_user__username').distinct()
+    video_contributors =  tr_due_video.values_list('video_user', 'video_user__first_name', 'video_user__last_name', 'video_user__username').distinct()
+    # union of about two queryset and converting it back to list
+    unpaid_contributors = list(set(list(script_contributors)+list(video_contributors)))
+    # tr_due = tr_due_script | tr_due_video
+    tr_due = TutorialResource.objects.filter(status = 1, payment_status = 0).filter(Q(script_user__groups__in = [5,]) | Q(video_user__groups__in = [5,])).distinct()
     tr_due = tr_due.order_by('publish_at')
-    #pagination
+    # pagination
     page = request.GET.get('page')
-    tr_due = get_page(tr_due, page, 10)
+    tr_due = get_page(tr_due, page, 500)
     context = {
         'due_tutorials': tr_due,
+        'unpaid_contributors': unpaid_contributors,
         'collection': tr_due, # for pagination
     }
     return render(request, 'creation/templates/list_all_due_tutorials.html', context)
@@ -2906,3 +2952,72 @@ def mark_tutorial_as_payment_initiated(tr_id):
     # send notification and mail
     tr_obj.save()
     print("success")
+
+def get_video_info_random(filepath):
+    info_m = {}
+    info_m['codec'] = ''
+    info_m['profile'] = ''
+    info_m['hours'] = 0
+    info_m['minutes'] = 0
+    info_m['seconds'] = 0
+    info_m['duration'] = 0
+    info_m['total'] = random.randint(500,900)
+    info_m['width'] = 0
+    info_m['height'] = 0
+    info_m['size'] = 0
+    return info_m
+
+def get_tutorial_time(tr):
+    '''
+    returns time length of tutorial video
+    '''
+    tr_video_path = settings.MEDIA_ROOT + "videos/" + str(tr.tutorial_detail.foss_id) + "/" + str(tr.tutorial_detail_id) + "/" + tr.video
+    #making call to proxy function to get random data
+    tr_video_info = get_video_info_random(tr_video_path)
+    tr_video_time = tr_video_info.get('total',0)
+    return tr_video_time
+
+def get_tutorial_payment(tr, user, time):
+    VIDEO_PAY_PER_SEC = 7/6
+    SCRIPT_PAY_PER_SEC = 13/6
+    VIDEO_SCRIPT_PAY_PER_SEC = 20/6
+    amt = 0
+    if tr.script_user.id == user.id and tr.video_user.id == user.id:
+        amt = time*VIDEO_SCRIPT_PAY_PER_SEC
+    elif tr.script_user.id == user.id:
+        amt = time*SCRIPT_PAY_PER_SEC
+    elif tr.video_user.id == user.id:
+        amt = time * VIDEO_PAY_PER_SEC
+    return amt
+
+
+def initiate_payment(request):
+    user_id = request.POST.get('user')
+    tutorials_id = request.POST.getlist('selected_tutorials')
+    user = User.objects.get(id = user_id)
+    payment = TutorialPayment(user = user, time = 0, amount = 0)
+    payment.save()
+    time = 0 # list of time duration of each tr
+    amount = 0 # list for amount to be paid for each tr
+    for tr_id in tutorials_id:
+        tr = TutorialResource.objects.get(id = tr_id)
+        #calculating video time
+        tr_video_path = settings.MEDIA_ROOT + "videos/" + str(tr.tutorial_detail.foss_id) + "/" + str(tr.tutorial_detail_id) + "/" + tr.video
+        #making call to proxy function to get random data
+        tr_video_info = get_video_info_random(tr_video_path)
+        tr_video_total_time = tr_video_info.get('total',0)
+        time += (tr_video_total_time)
+        # tr_amount = calculate_payment_amount(tr, user)
+        # amount += tr_amount
+        # tr.status = 1
+        # tr.save()
+        payment.tutorial.add(tr)
+    payment.time = time
+    payment.save()
+
+class TutorialPaymentList(ListView):
+    model = TutorialPayment
+    template_name = 'creation/templates/tutorialpayment_list.html'
+
+    def get_queryset(self):
+        return TutorialPayment.objects.filter(id__gte = 20)

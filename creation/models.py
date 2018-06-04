@@ -2,7 +2,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 
-import random
+import random, json
 
 def ran_value():
     return random.randint(0,4)
@@ -215,6 +215,15 @@ class TutorialResource(models.Model):
 
     class Meta:
         unique_together = (('tutorial_detail', 'language',),)
+
+
+class TutorialPayment(models.Model):
+    user = models.ForeignKey(User)
+    tutorial = models.ManyToManyField(TutorialResource)
+    time = models.TextField(default = "")
+    amount = models.PositiveIntegerField(default = 0)
+    started = models.DateTimeField(auto_now_add = True)
+    updated = models.DateTimeField(auto_now = True)
 
 
 class ArchivedVideo(models.Model):
