@@ -54,7 +54,7 @@
             </table>
         </form>
     </div> -->
-    <!-- {% regroup collection by script_user  as contributor_list %}
+    {% regroup collection by user  as contributor_list %}
     <div class="panel-group">
         {% for contributor in contributor_list %}
         <div class="panel panel-default">
@@ -67,27 +67,45 @@
                 <div class="panel-body">
                     <form method="post">
                         {% csrf_token %}
+                        <input type="hidden" name="user" value="{{ contributor.grouper.id }}" />
+                        {% csrf_token %}
                         <table class="paleblue table table-condensed table-bordered table-hover table-striped">
                             <thead>
                                 <th><input type="checkbox" class="all_tutorial_checkbox" name="select_all" title="Select All Tutorials"></th>
                                 <th>Tutorial Title</th>
                                 <th>FOSS</th>
-                                <th>Language</th>                      
+                                <th>Language</th> 
+                                <th>Script User</th>                     
+                                <th>Video User</th>                     
+                                <th>Duration</th>                      
+                                <th>Amount</th>                      
                                 <th>Published At</th>    
                             </thead>
                             <tbody>
-                            {% for tutorial in contributor.list %}
+                            {% for payment in contributor.list %}
                             <tr>
-                                <td><input type="checkbox" class="tutorial_select_checkbox" name="selected_tutorials" value="{{ tutorial.id }}"></td> 
-                                <td>{{ tutorial.tutorial_detail.tutorial }}</td>
-                                <td>{{ tutorial.tutorial_detail.foss }}</td>
-                                <td>{{ tutorial.language }}</td>
-                                
-                                <td>{{ tutorial.publish_at }}</td>
+                                <td><input type="checkbox" class="tutorial_select_checkbox" name="selected_tutorialpayments" value="{{ payment.id }}"></td> 
+                                <td>{{ payment.tutorial_resource.tutorial_detail.tutorial }}</td>
+                                <td>{{ payment.tutorial_resource.tutorial_detail.foss }}</td>
+                                <td>{{ payment.tutorial_resource.language }}</td>
+                                <td class="text-success text-center"> 
+                                    {% if payment.user_type == 1 or payment.user_type == 3%}
+                                        &nbsp;<span class="fa fa-1 fa-check-circle"></span>&nbsp;
+                                    {% endif %}
+                                </td>
+                                <td class="text-success text-center"> 
+                                    {% if payment.user_type == 2 or payment.user_type == 3%}
+                                        &nbsp;<span class="fa fa-1 fa-check-circle"></span>&nbsp;
+                                    {% endif %}
+                                </td>
+                                <td>{{ payment.get_duration }}</td>
+                                <td>₹ {{ payment.amount }}</td>
+                                <td>{{ payment.tutorial_resource.publish_at }}</td>
                             </tr>
                             {% endfor%}
                             <tr>
-                                <td colspan="6" class="text-right">
+                                <td colspan="10" class="text-right">
+                                    <!-- <input type="submit" class="btn btn-danger" value="Hold Payment">  -->
                                     <input type="submit" class="btn btn-primary" value="Initiate Payment"> 
                                 </td>
                             </tr>
@@ -98,34 +116,8 @@
             </div>
         </div>
         {% endfor %}
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h4 class="panel-title">
-                    <a data-toggle="collapse" href="#collapse1">Collapsible list group</a>
-                </h4>
-            </div>
-            <div id="collapse1" class="panel-collapse collapse">
-                <div class="panel-body">
-                    <table class="paleblue table table-condensed table-bordered table-hover table-striped">
-                        <tr>
-                            <td>test1</td>
-                            <td>test2</td>
-                        </tr>
-                        <tr>
-                            <td>test1</td>
-                            <td>test2</td>
-                        </tr>
-                        <tr>
-                            <td>test1</td>
-                            <td>test2</td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="panel-footer">Footer</div>
-            </div>
-        </div>
-    </div> -->
-    {% for user in unpaid_contributors %}
+    </div>
+    <!-- {% for user in unpaid_contributors %}
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -188,7 +180,7 @@
             </div>
         </div>
     </div>
-    {% endfor %}
+    {% endfor %} -->
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 
     <script>

@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import time
+import datetime
 from django.utils import timezone
 from decimal import Decimal
 from urllib import quote, unquote_plus, urlopen
@@ -24,6 +25,7 @@ from django.shortcuts import render
 from django.db.models import Count, F, Q
 from django.views.generic.list import ListView
 from django.core.urlresolvers import reverse
+from django.db import IntegrityError
 
 
 # Spoken Tutorial Stuff
@@ -1819,7 +1821,8 @@ def publish_tutorial_index(request):
             13: SortableHeader('Keywords', False, '', 'col-center'),
             14: SortableHeader('<span title="" data-original-title="" class="fa fa-cogs fa-2"></span>', False, '', 'col-center')
         }
-        collection = TutorialResource.objects.filter(id__in = tmp_ids)
+        # collection = TutorialResource.objects.filter(id__in = tmp_ids)
+        collection = TutorialResource.objects.all() # testing_mohit
         collection = get_sorted_list(request, collection, header, raw_get_data)
         ordering = get_field_index(raw_get_data)
         page = request.GET.get('page')
@@ -2140,6 +2143,8 @@ def public_review_tutorial(request, trid):
 
 @login_required
 def publish_tutorial(request, trid):
+    tr_rec = TutorialResource.objects.get(id = trid)
+    create_payment_instance(request, tr_rec) # testing_mohit
     if not is_qualityreviewer(request.user):
         raise PermissionDenied()
     try:
@@ -2160,11 +2165,12 @@ def publish_tutorial(request, trid):
         tr_rec.publish_at = timezone.now()
         tr_rec.save()
         PublishTutorialLog.objects.create(user = request.user, tutorial_resource = tr_rec)
-        create_payment_instance(tr_rec) # create instance of tutorial payment
+        # create_payment_instance(tr_rec) # create instance of tutorial payment
         add_contributor_notification(tr_rec, comp_title, 'This tutorial is published now')
         messages.success(request, 'The selected tutorial is published successfully')
     else:
         messages.error(request, 'The selected tutorial cannot be marked as Public review')
+    create_payment_instance(request, tr_rec) # testing_mohit
     return HttpResponseRedirect('/creation/quality-review/tutorial/publish/index/')
 
 @login_required
@@ -2924,24 +2930,16 @@ def load_fosses(request):
     return render(request, 'creation/templates/foss_dropdown_list_options.html',{'foss_list': foss_list, 'existing_foss': existing_foss})
 
 def list_all_due_tutorials(request):
-    # tutorials to be switched from due to initiated
+    # initiate payment process for selected tutorials
     if request.method == "POST":
         initiate_payment(request)
-    tr_due_script = TutorialResource.objects.filter(status = 1, script_user__groups__in = [5,], payment_status = 1,)
-    tr_due_video = TutorialResource.objects.filter(status = 1, video_user__groups__in = [5,], payment_status = 1,)
-    # finding list of contributors who were not paid
-    script_contributors = tr_due_script.values_list('script_user', 'script_user__first_name', 'script_user__last_name', 'script_user__username').distinct()
-    video_contributors =  tr_due_video.values_list('video_user', 'video_user__first_name', 'video_user__last_name', 'video_user__username').distinct()
-    # union of about two queryset and converting it back to list
-    unpaid_contributors = list(set(list(script_contributors)+list(video_contributors)))
-    tr_due = TutorialResource.objects.filter(status = 1, payment_status = 1).filter(Q(script_user__groups__in = [5,]) | Q(video_user__groups__in = [5,])).distinct()
-    tr_due = tr_due.order_by('publish_at')
+
+    tr_due = TutorialPayment.objects.filter(status = 1).order_by('user')
     # pagination
     page = request.GET.get('page')
     tr_due = get_page(tr_due, page, 500)
     context = {
         'due_tutorials': tr_due,
-        'unpaid_contributors': unpaid_contributors,
         'collection': tr_due, # for pagination
     }
     return render(request, 'creation/templates/list_all_due_tutorials.html', context)
@@ -2954,67 +2952,30 @@ def mark_tutorial_as_payment_initiated(tr_id):
     print("success")
 
 def get_video_info_random(filepath):
-    ''' 
+    '''
+        testing 
         temporary function to get video time using its name
     '''
     video_time = 0
     for ch in filepath:
         video_time += ord(ch)
-    return 500 + video_time%500
-
-def get_tutorial_time(tr):
-    '''
-    returns time length of tutorial video
-    '''
-    tr_video_path = settings.MEDIA_ROOT + "videos/" + str(tr.tutorial_detail.foss_id) + "/" + str(tr.tutorial_detail_id) + "/" + tr.video
-    #making call to proxy function to get random data
-    tr_video_info = get_video_info_random(tr_video_path)
-    tr_video_time = tr_video_info.get('total',0)
-    return tr_video_time
-
-def get_tutorial_payment(tr, user, time):
-    VIDEO_PAY_PER_SEC = 7/6
-    SCRIPT_PAY_PER_SEC = 13/6
-    VIDEO_SCRIPT_PAY_PER_SEC = 20/6
-    amt = 0
-    if tr.script_user.id == user.id and tr.video_user.id == user.id:
-        amt = time*VIDEO_SCRIPT_PAY_PER_SEC
-    elif tr.script_user.id == user.id:
-        amt = time*SCRIPT_PAY_PER_SEC
-    elif tr.video_user.id == user.id:
-        amt = time * VIDEO_PAY_PER_SEC
-    return amt
-
+    sec = 500 + video_time%500
+    td = datetime.timedelta(seconds = sec)
+    return td.seconds
 
 def initiate_payment(request):
     user_id = request.POST.get('user')
-    tutorials_id = request.POST.getlist('selected_tutorials')
+    tr_pay_ids = request.POST.getlist('selected_tutorialpayments')
     user = User.objects.get(id = user_id)
-    payment = TutorialPayment(user = user, time = 0, amount = 0)
-    payment.save()
-    time = 0 # list of time duration of each tr
-    amount = 0 # list for amount to be paid for each tr
-    for tr_id in tutorials_id:
-        tr = TutorialResource.objects.get(id = tr_id)
-        # calculating video time
-        '''
-        # actual production call
-        tr_video_path = settings.MEDIA_ROOT + "videos/" + str(tr.tutorial_detail.foss_id) + "/" + str(tr.tutorial_detail_id) + "/" + tr.video
-        tr_video_info = get_video_info(tr_video_path)
-        tr_video_total_time = tr_video_info.get('total',0) 
-        time += (tr_video_total_time)
-        '''
-        # making call to proxy function to get random data
-        tr_video_info_time = get_video_info_random(tr.video)
-        time += tr_video_info_time
-        # tr_amount = calculate_payment_amount(tr, user)
-        # amount += tr_amount
-        tr.payment_status = 2 # from 1 --> 2 i.e due--> initiated
-        tr.save()
-        payment.tutorial.add(tr)
-    payment.time = time
-    payment.save()
-    return HttpResponseRedirect(reverse('payment-due-tutorials'))
+    if len(tr_pay_ids) > 0:
+        challan = PaymentChallan.objects.create(status = 1)
+        amount = 0
+        for tr_pay_id in tr_pay_ids:
+            tr_pay = TutorialPayment.objects.get(id = tr_pay_id)
+            tr_pay.status = 2 # from 1 --> 2 i.e due --> initiated
+            tr_pay.save()
+            tr_pay.payment_challan = challan
+        return HttpResponseRedirect(reverse('creation:payment-due-tutorials'))
 
 class TutorialPaymentList(ListView):
     model = TutorialPayment
@@ -3023,7 +2984,7 @@ class TutorialPaymentList(ListView):
     def gettt_queryset(self):
         return TutorialPayment.objects.filter(id__gte = 20)
 
-def create_payment_instance(tr_res):
+def create_payment_instance(request, tr_res):
     '''
     When an object got published it creates instance for payment.
     Input -> TutorialResourceObject
@@ -3036,23 +2997,36 @@ def create_payment_instance(tr_res):
     tr_video_info = get_video_info(tr_video_path)
     tr_video_duration = tr_video_info.get('total',0)
     '''
-    tr_video_duration = get_video_info_random(tr.video)
-    
-    if tr_res.script_user == tr_res.video_user:
-        if 5 in tr_res.script_user.groups:
-            tp = TutorialPayment.objects.create(
-                user = tr_res.script_user,
-                tr_res = tr_res,
-                user_type = 3,
-                duration = tr_video_duration,
-            )
-            tp.save()
-            '''
-            # actual production call to get time
-            tr_video_path = settings.MEDIA_ROOT + "videos/" + str(tr.tutorial_detail.foss_id) + "/" + str(tr.tutorial_detail_id) + "/" + tr.video
-            tr_video_info = get_video_info(tr_video_path)
-            tr_video_time = tr_video_info.get('total',0)
-            '''
-            tr_video_time = get_video_info_random(tr.video)
-            tp.time = tr_video_time
-            tp.save()
+    tr_video_duration = get_video_info_random(tr_res.video)
+    try:
+        if tr_res.script_user == tr_res.video_user:
+            if is_external_contributor(tr_res.script_user):
+                tp = TutorialPayment.objects.create(
+                    user = tr_res.script_user,
+                    tutorial_resource = tr_res,
+                    user_type = 3,
+                    seconds = tr_video_duration,
+                    # payment_challan = None,
+                )
+                tp.save()
+        else:
+            if is_external_contributor(tr_res.script_user):
+                tp = TutorialPayment.objects.create(
+                    user = tr_res.script_user,
+                    tutorial_resource = tr_res,
+                    user_type = 1,
+                    seconds = tr_video_duration,
+                    # payment_challan = None,
+                )
+                tp.save()
+            if is_external_contributor(tr_res.video_user):
+                tp = TutorialPayment.objects.create(
+                    user = tr_res.video_user,
+                    tutorial_resource = tr_res,
+                    user_type = 2,
+                    seconds = tr_video_duration,
+                    # payment_challan = None,
+                )
+                tp.save()
+    except IntegrityError as e:
+        messages.error(request, " Tutorial already in payment process. Error Detail -- "+str(e))
