@@ -62,15 +62,15 @@ def get_review_status_symbol(key):
 	return status_list[key];
 
 def get_payment_status_list(key):
-    status_list = ['Due','Initiated','Forwarded','Done']
+    status_list = ['Canceled','Due','Initiated','Completed','Confirmed']
     return status_list[key];
 
 def get_payment_status_color(key):
-    status_list = ['danger', 'muted', 'primary', 'success']
+    status_list = ['danger','warning', 'muted', 'primary', 'success']
     return status_list[key]
 
 def get_payment_status_symbol(key):
-    status_list = ['fa fa-1 fa-minus-circle', 'fa fa-1 fa-check-circle', 'fa fa-1 fa-check-circle', 'fa fa-1 fa-check-circle', ]
+    status_list = ['fa fa-1 fa-times-circle','fa fa-1 fa-minus-circle', 'fa fa-1 fa-check-circle', 'fa fa-1 fa-check-circle', 'fa fa-1 fa-check-circle', ]
     return status_list[key]
 
 def get_username(key):

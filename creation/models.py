@@ -2,16 +2,23 @@
 from django.contrib.auth.models import User
 from django.db import models
 
-import random, json
+PAYMENT_STATUS = (
+    (0, 'Payment Cancelled'),
+    (1, 'Payment Due'),
+    (2, 'Payment Initiated'),
+)
 
-def ran_value():
-    return random.randint(0,4)
+USER_TYPE = (
+    (1, 'Script User'),
+    (2, 'Video User'),
+    (3, 'Script & Video User'),
+)
 
-PAYMENT_STAGES = (
-    (0, 'Payment Due'),
-    (1, 'Payment Initiated'),
-    (2, 'Payment Forwarded'),
-    (3, 'Payment Done'),
+CHALLAN_STATUS = (
+    (1, 'In Process'),
+    (2, 'Forwarded'),
+    (3, 'Completed'),
+    (4, 'Confirmed'),
 )
 
 
@@ -203,11 +210,9 @@ class TutorialResource(models.Model):
     video_thumbnail_time = models.TimeField(default='00:00:00')
     video_user = models.ForeignKey(User, related_name='videos')
     video_status = models.PositiveSmallIntegerField(default=0)
-    payment_status = models.PositiveSmallIntegerField(default = ran_value(), choices = PAYMENT_STAGES)
     status = models.PositiveSmallIntegerField(default=0)
     version = models.PositiveSmallIntegerField(default=0)
     hit_count = models.PositiveIntegerField(default=0)
-    # 0 - due, 1 - initiated, 2 - forwarded, 3 - completed
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     publish_at = models.DateTimeField(null=True)
@@ -218,12 +223,22 @@ class TutorialResource(models.Model):
 
 
 class TutorialPayment(models.Model):
-    user = models.ForeignKey(User)
-    tutorial = models.ManyToManyField(TutorialResource)
-    time = models.TextField(default = "")
-    amount = models.PositiveIntegerField(default = 0)
-    started = models.DateTimeField(auto_now_add = True)
-    updated = models.DateTimeField(auto_now = True)
+    user = models.ForeignKey(User, related_name="contributor")
+    tutorial_resource = models.ForeignKey(TutorialResource)
+    user_type = models.PositiveSmallIntegerField(default = 3, choices = USER_TYPE)
+    duration = models.DurationField(default = 0)
+    amount = models.DecimalField(max_digits = 9, decimal_places = 2, default = 0)
+    payment_challan = models.ForeignKey('PaymentChallan')
+
+    class Meta:
+        unique_together = (('tutorial_resource', 'user'),)
+
+
+class PaymentChallan(models.Model):
+    challan_code = models.CharField(max_length = 255, null = True, blank = True, unique = True)
+    amount = models.DecimalField(max_digits = 9, decimal_places = 2, default = 0)
+    challan_doc = models.FileField()
+    challan_status = models.PositiveSmallIntegerField(default = 1, choices = CHALLAN_STATUS)
 
 
 class ArchivedVideo(models.Model):
