@@ -3038,9 +3038,55 @@ def list_payment_challan(request):
     '''
     to display list of all payment challans
     '''
-    challans = PaymentChallan.objects.all().order_by('-updated')
+    # updating challan status
+    if request.method == "POST":
+        if "change_status" in request.POST:
+            try:
+                msg_end = ''
+                challan_id = request.POST.get('id',0)
+                challan = PaymentChallan.objects.get(id = challan_id)
+                ch_st = challan.status
+                if ch_st == 1:
+                    challan.status = 2
+                    msg_end = 'marked as forwarded.'
+                elif ch_st == 2:
+                    challan.status = 3
+                    msg_end = 'marked as completed'
+                messages.success(request,'Payment Challan ('+str(challan.code)+' worth Rs. '+str(challan.amount)+' '+msg_end)
+                challan.save()
+            except:
+                messages.warning(request, "Something went wrong. Couldn't complete your request")
+            # to avoid form resubmission
+            return HttpResponseRedirect(reverse('creation:payment-challan-list'))
+
+    challans = PaymentChallan.objects.order_by('status','-updated')
+    # filtering challan result         
+    form = PaymentChallanFilterForm(request.GET)
+    if request.method == "GET":
+        if form.is_valid():
+            contributor = form.cleaned_data['contributor']
+            status = form.cleaned_data['status']
+            s_date = form.cleaned_data['start_date']
+            e_date = form.cleaned_data['end_date']
+            if contributor:
+                tr_pay = TutorialPayment.objects.filter(status = 2, user = contributor)
+                pay_challan_ids = tr_pay.values_list('payment_challan', flat = True).distinct()
+                challans = challans.filter(id__in = pay_challan_ids)
+                print(pay_challan_ids)
+            if status:
+                challans = challans.filter(status = status)
+            if s_date:
+                challans = challans.filter(updated__gte = s_date)
+            if e_date:
+                challans = challans.filter(updated__lte = e_date)
+
+    #pagination
+    page = request.GET.get('page')
+    challans = get_page(challans, page, 50)
     context = {
         'challans': challans,
+        'collection': challans, # for pagination
+        'form':form
     }
     return render(request, "creation/templates/list_all_payment_challan.html",context)
     '''
