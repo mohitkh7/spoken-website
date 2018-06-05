@@ -2973,8 +2973,11 @@ def initiate_payment(request):
         for tr_pay_id in tr_pay_ids:
             tr_pay = TutorialPayment.objects.get(id = tr_pay_id)
             tr_pay.status = 2 # from 1 --> 2 i.e due --> initiated
-            tr_pay.save()
             tr_pay.payment_challan = challan
+            amount += tr_pay.amount
+            tr_pay.save()
+        challan.amount = amount
+        challan.save()
         return HttpResponseRedirect(reverse('creation:payment-due-tutorials'))
 
 class TutorialPaymentList(ListView):
@@ -3030,3 +3033,53 @@ def create_payment_instance(request, tr_res):
                 tp.save()
     except IntegrityError as e:
         messages.error(request, " Tutorial already in payment process. Error Detail -- "+str(e))
+
+def list_payment_challan(request):
+    '''
+    to display list of all payment challans
+    '''
+    challans = PaymentChallan.objects.all().order_by('-updated')
+    context = {
+        'challans': challans,
+    }
+    return render(request, "creation/templates/list_all_payment_challan.html",context)
+    '''
+    form = PublishedTutorialFilterForm(request.GET)
+    # status = 1 for published and script_user__groups = 5 for external contributors
+    tr_pub = TutorialResource.objects.filter(status = 1, script_user__groups__in = [5,]) 
+    if form.is_valid():
+        start_date = form.cleaned_data['start_date']
+        end_date = form.cleaned_data['end_date']
+        contributor = form.cleaned_data['contributor']
+        foss = form.cleaned_data['foss']
+        language = form.cleaned_data['language']
+        if start_date:
+            tr_pub = tr_pub.filter(publish_at__gte = start_date)
+        if end_date:
+            tr_pub = tr_pub.filter(publish_at__lte = end_date)
+        if contributor:
+            tr_pub = tr_pub.filter(script_user = contributor)
+        if foss:
+            tr_pub = tr_pub.filter(tutorial_detail__foss_id = foss)
+        if language:
+            tr_pub = tr_pub.filter(language = language)
+    #generating summary out of filtered tutorials
+    payment_summary = tr_pub.values('script_user', 'script_user__first_name', 'script_user__last_name').annotate(published_tuorial = Count('script_user'))
+    tr_pub_count = tr_pub.count() # counting number of tutorial published
+    payment_summary_count = payment_summary.count() # number of contributors
+    
+    tr_pub = tr_pub.order_by('-publish_at') # ordering latest first
+    #pagination
+    page = request.GET.get('page')
+    tr_pub = get_page(tr_pub, page, 10)
+    context = {
+        'published_tutorials': tr_pub,
+        'media_url': settings.MEDIA_URL,
+        'count_of_published_tutorials': tr_pub_count,
+        'count_of_contributors': payment_summary_count,
+        'form': form,
+        'collection': tr_pub, # for pagination
+        'payment_summary': payment_summary,
+    }
+    return render(request, 'creation/templates/list_all_published_tutorials.html', context)
+    '''

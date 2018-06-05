@@ -1,0 +1,42 @@
+{% extends 'spoken/templates/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+{% load cmsdata %}
+{% load creationdata %}
+{% block title %} Payment Challans {% endblock %}
+{% block uncompresscssblock %}
+    <link rel="stylesheet" href="{% static 'spoken/css/flip-scroll.min.css' %}" type="text/css" media="screen" charset="utf-8" />
+{% endblock %}
+{% block heading %}<i class="fa fa-list-ul"></i> Payment Challan {% endblock %}
+{% block content %}
+	<table class="paleblue table table-condensed table-bordered table-hover table-striped">
+		<tr>
+			<th>Code</th>
+			<th>Tutorials</th>
+			<th>Contributor</th>
+			<th>Total Amount</th>
+			<th>Last Updated</th>
+			<th>Challan</th>
+			<th>Options</th>
+		</tr>
+	{% for challan in challans %}
+		<tr>
+			<td>{{ challan.code }}</td>
+			<td><a title="click to show details">{{ challan.tutorials.all | length }} Tutorials</a></td>
+			<td>
+				{{ challan.tutorials.all.0.user }}
+			</td>
+			<td>Rs. {{ challan.amount }}</td>
+			<td>{{ challan.updated }}</td>
+			<td><a>View</a></td>
+			<td>
+				<button class="btn btn-primary btn-sm " style="margin-bottom: 3px;">Generate Reciept</button><br>
+				<button class="btn btn-success btn-xs">Mark as Forwarded</button>
+			</td>
+	{% empty %}
+		<tr class="text-center">
+			<td colspan="6">No challan generated so far.</td>
+		</tr>	
+	{% endfor %}
+	</table>
+{% endblock %}
