@@ -2896,7 +2896,8 @@ def list_all_due_tutorials(request):
     # initiate payment process for selected tutorials
     if request.method == "POST":
         initiate_payment(request)
-
+        # to aviod form resubmit
+        return HttpResponseRedirect(reverse('creation:payment-due-tutorials'))
     tr_due = TutorialPayment.objects.filter(status = 1).order_by('user')
     # pagination
     page = request.GET.get('page')
@@ -2934,8 +2935,9 @@ def initiate_payment(request):
             tr_pay.save()
         challan.amount = amount
         challan.save()
-        messages.success(request,"Payment Challan (#"+str(challan.code)+") generated for "+str(len(tr_pay_ids))+" tutorials")
-        return HttpResponseRedirect(reverse('creation:payment-due-tutorials'))
+        messages.success(request,"Payment Challan ("+str(challan.code)+") worth Rs. \
+            "+str(amount)+" for contributor "+user.first_name+" "+user.last_name+" generated for \
+            "+str(len(tr_pay_ids))+" tutorials")
 
 def create_payment_instance(request, tr_res):
     '''
@@ -3002,7 +3004,7 @@ def list_payment_challan(request):
                 elif ch_st == 2:
                     challan.status = 3
                     msg_end = 'marked as completed'
-                messages.success(request,'Payment Challan ('+str(challan.code)+' worth Rs. '+str(challan.amount)+' '+msg_end)
+                messages.success(request,'Payment Challan ('+str(challan.code)+') worth Rs. '+str(challan.amount)+' '+msg_end)
                 challan.save()
             except:
                 messages.warning(request, "Something went wrong. Couldn't complete your request")

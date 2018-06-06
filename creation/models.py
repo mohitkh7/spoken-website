@@ -1,7 +1,7 @@
 # Third Party Stuff
 import uuid
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -230,10 +230,24 @@ class TutorialResource(models.Model):
 
 class PaymentChallan(models.Model):
     amount = models.DecimalField(max_digits = 9, decimal_places = 2, default = 0)
-    code = models.UUIDField(unique = True, default = uuid.uuid4, editable = False)
+    code = models.CharField(max_length=20, editable = False)
     doc = models.FileField(null = True, blank = True)
     status = models.PositiveSmallIntegerField(default = 1, choices = CHALLAN_STATUS)
     updated = models.DateTimeField(auto_now = True)
+
+    def save(self, *args, **kwargs):
+        """
+        Generating custom challan code
+        """
+        if not self.id:
+            try:
+                last_id = PaymentChallan.objects.order_by('-id')[0].id
+            except IndexError:
+                last_id = 0
+            unique_id = last_id+1
+            today = date.today()
+            self.code = "#PC/{year}/{month:02n}/{unique_id:04n}".format(year=today.year, month=today.month, unique_id=unique_id)
+        super(self.__class__, self).save(*args, **kwargs)
 
 
 class TutorialPayment(models.Model):

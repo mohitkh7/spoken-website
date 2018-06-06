@@ -9,6 +9,11 @@
 {% endblock %}
 {% block heading %}<i class="fa fa-list-ul"></i> Payment Challan {% endblock %}
 {% block content %}
+	<style>
+		.tr_detail{
+			display: None; /* Hide tutorial details initially */
+		}
+	</style>
 	<div class="row">
         <form class="form-horizontal">
             <div class="col-md-6">
@@ -52,7 +57,6 @@
 	<table class="paleblue table table-condensed table-bordered table-hover table-striped ">
 		<tr>
 			<th>Code</th>
-			<th>Tutorials</th>
 			<th>Contributor</th>
 			<th>Total Amount</th>
 			<th>Last Updated</th>
@@ -62,18 +66,17 @@
 	{% for challan in challans %}
 		<tr>
 			<td>
-				{{ challan.code }}
-				<div class="challan-tutorial-detail">
-					<ul class="hidden">
+				<a class="toggle_tr_detail">{{ challan.code }}</a>
+				<div class="tr_detail">
+					<ul class="">
 						{% for tut in challan.tutorials.all %}
-						<li>{{ tut.tutorial_resource.tutorial_detail.tutorial }}
+						<li>{{ tut.tutorial_resource.tutorial_detail.tutorial | truncatechars:20 }}
 						 - {{ tut.get_duration }}
-						 - {{ tut.amount }}
+						 - ₹{{ tut.amount }}</li>
 						{% endfor %}
 					</ul>
 				</div>
 			</td>
-			<td><a title="click to show details">{{ challan.tutorials.all | length }} Tutorials</a></td>
 			<td>
 				{{ challan.tutorials.all.0.user.first_name }} {{ challan.tutorials.all.0.user.last_name }}
 			</td>
@@ -105,4 +108,15 @@
 		</tr>	
 	{% endfor %}
 	</table>
+	 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+    <script>
+
+        $(document).ready(function(){
+        	$('.tr_detail').hide();
+        	$('.toggle_tr_detail').click(function(){
+        		$(this).next().toggle();
+        	})
+        });
+    </script>
 {% endblock %}
