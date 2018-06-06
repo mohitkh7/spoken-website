@@ -2925,18 +2925,18 @@ def initiate_payment(request):
     tr_pay_ids = request.POST.getlist('selected_tutorialpayments')
     user = User.objects.get(id = user_id)
     if len(tr_pay_ids) > 0:
-        challan = PaymentChallan.objects.create(status = 1)
+        honorarium = PaymentHonorarium.objects.create(status = 1)
         amount = 0
         for tr_pay_id in tr_pay_ids:
             tr_pay = TutorialPayment.objects.get(id = tr_pay_id)
             tr_pay.status = 2 # from 1 --> 2 i.e due --> initiated
-            tr_pay.payment_challan = challan
+            tr_pay.payment_honorarium = honorarium
             amount += tr_pay.amount
             tr_pay.save()
-        challan.amount = amount
-        challan.save()
-        messages.success(request,"Payment Challan ("+str(challan.code)+") worth Rs. \
-            "+str(amount)+" for contributor "+user.first_name+" "+user.last_name+" generated for \
+        honorarium.amount = amount
+        honorarium.save()
+        messages.success(request,"Payment Honorarium ("+str(honorarium.code)+") worth Rs. \
+            "+str(amount)+" for contributor "+user.first_name+" "+user.last_name+" initiated for \
             "+str(len(tr_pay_ids))+" tutorials")
 
 def create_payment_instance(request, tr_res):
@@ -2961,7 +2961,7 @@ def create_payment_instance(request, tr_res):
                     tutorial_resource = tr_res,
                     user_type = 3,
                     seconds = tr_video_duration,
-                    # payment_challan = None,
+                    # payment_honorarium = None,
                 )
                 tp.save()
         else:
@@ -2971,7 +2971,7 @@ def create_payment_instance(request, tr_res):
                     tutorial_resource = tr_res,
                     user_type = 1,
                     seconds = tr_video_duration,
-                    # payment_challan = None,
+                    # payment_honorarium = None,
                 )
                 tp.save()
             if is_external_contributor(tr_res.video_user):
@@ -2980,40 +2980,40 @@ def create_payment_instance(request, tr_res):
                     tutorial_resource = tr_res,
                     user_type = 2,
                     seconds = tr_video_duration,
-                    # payment_challan = None,
+                    # payment_honorarium = None,
                 )
                 tp.save()
     except IntegrityError as e:
         messages.error(request, " Tutorial already in payment process. Error Detail -- "+str(e))
 
-def list_payment_challan(request):
+def list_payment_honorarium(request):
     '''
-    to display list of all payment challans
+    to display list of all payment honorariums
     '''
-    # updating challan status
+    # updating honorarium status
     if request.method == "POST":
         if "change_status" in request.POST:
             try:
                 msg_end = ''
-                challan_id = request.POST.get('id',0)
-                challan = PaymentChallan.objects.get(id = challan_id)
-                ch_st = challan.status
-                if ch_st == 1:
-                    challan.status = 2
+                honorarium_id = request.POST.get('id',0)
+                honorarium = PaymentHonorarium.objects.get(id = honorarium_id)
+                hr_st = honorarium.status
+                if hr_st == 1:
+                    honorarium.status = 2
                     msg_end = 'marked as forwarded.'
-                elif ch_st == 2:
-                    challan.status = 3
+                elif hr_st == 2:
+                    honorarium.status = 3
                     msg_end = 'marked as completed'
-                messages.success(request,'Payment Challan ('+str(challan.code)+') worth Rs. '+str(challan.amount)+' '+msg_end)
-                challan.save()
+                messages.success(request,'Payment Honorarium ('+str(honorarium.code)+') worth Rs. '+str(honorarium.amount)+' '+msg_end)
+                honorarium.save()
             except:
                 messages.warning(request, "Something went wrong. Couldn't complete your request")
             # to avoid form resubmission
-            return HttpResponseRedirect(reverse('creation:payment-challan-list'))
+            return HttpResponseRedirect(reverse('creation:payment-honorarium-list'))
 
-    challans = PaymentChallan.objects.order_by('status','-updated')
-    # filtering challan result         
-    form = PaymentChallanFilterForm(request.GET)
+    honorariums = PaymentHonorarium.objects.order_by('status','-updated')
+    # filtering honorarium result         
+    form = PaymentHonorariumFilterForm(request.GET)
     if request.method == "GET":
         if form.is_valid():
             contributor = form.cleaned_data['contributor']
@@ -3022,21 +3022,21 @@ def list_payment_challan(request):
             e_date = form.cleaned_data['end_date']
             if contributor:
                 tr_pay = TutorialPayment.objects.filter(status = 2, user = contributor)
-                pay_challan_ids = tr_pay.values_list('payment_challan', flat = True).distinct()
-                challans = challans.filter(id__in = pay_challan_ids)
+                pay_honorarium_ids = tr_pay.values_list('payment_honorarium', flat = True).distinct()
+                honorariums = honorariums.filter(id__in = pay_honorarium_ids)
             if status:
-                challans = challans.filter(status = status)
+                honorariums = honorariums.filter(status = status)
             if s_date:
-                challans = challans.filter(updated__gte = s_date)
+                honorariums = honorariums.filter(updated__gte = s_date)
             if e_date:
-                challans = challans.filter(updated__lte = e_date)
+                honorariums = honorariums.filter(updated__lte = e_date)
 
     #pagination
     page = request.GET.get('page')
-    challans = get_page(challans, page, 50)
+    honorariums = get_page(honorariums, page, 50)
     context = {
-        'challans': challans,
-        'collection': challans, # for pagination
+        'honorariums': honorariums,
+        'collection': honorariums, # for pagination
         'form':form
     }
-    return render(request, "creation/templates/list_all_payment_challan.html",context)
+    return render(request, "creation/templates/list_all_payment_honorarium.html",context)

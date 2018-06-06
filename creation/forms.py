@@ -1025,7 +1025,7 @@ class PublishedTutorialFilterForm(forms.Form):
         if s_date > e_date:
             raise forms.ValidationError('End date must be later')
 
-class PaymentChallanFilterForm(forms.Form):
+class PaymentHonorariumFilterForm(forms.Form):
     contributor = forms.ChoiceField(
         choices = ['','--- Select Contributor ---'],
         required = False,
@@ -1052,7 +1052,7 @@ class PaymentChallanFilterForm(forms.Form):
     )    
 
     def __init__(self, *args, **kwargs):
-        super(PaymentChallanFilterForm, self).__init__(*args, **kwargs)
+        super(PaymentHonorariumFilterForm, self).__init__(*args, **kwargs)
         #populating contributor select choices
         contributor_list = list(TutorialPayment.objects.filter(status = 2).distinct()
             .values_list('user', 'user__first_name', 'user__last_name')

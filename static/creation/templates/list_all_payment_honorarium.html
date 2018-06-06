@@ -3,11 +3,11 @@
 {% load static %}
 {% load cmsdata %}
 {% load creationdata %}
-{% block title %} Payment Challans {% endblock %}
+{% block title %} Payment Honorariums {% endblock %}
 {% block uncompresscssblock %}
     <link rel="stylesheet" href="{% static 'spoken/css/flip-scroll.min.css' %}" type="text/css" media="screen" charset="utf-8" />
 {% endblock %}
-{% block heading %}<i class="fa fa-list-ul"></i> Payment Challan {% endblock %}
+{% block heading %}<i class="fa fa-list-ul"></i> Payment Honorariums {% endblock %}
 {% block content %}
 	<style>
 		.tr_detail{
@@ -60,16 +60,16 @@
 			<th>Contributor</th>
 			<th>Total Amount</th>
 			<th>Last Updated</th>
-			<th>Challan</th>
+			<th>Honorarium</th>
 			<th>Options</th>
 		</tr>
-	{% for challan in challans %}
+	{% for honorarium in honorariums %}
 		<tr>
 			<td>
-				<a class="toggle_tr_detail">{{ challan.code }}</a>
+				<a class="toggle_tr_detail">{{ honorarium.code }}</a>
 				<div class="tr_detail">
 					<ul class="">
-						{% for tut in challan.tutorials.all %}
+						{% for tut in honorarium.tutorials.all %}
 						<li>{{ tut.tutorial_resource.tutorial_detail.tutorial | truncatechars:20 }}
 						 - {{ tut.get_duration }}
 						 - ₹{{ tut.amount }}</li>
@@ -78,21 +78,21 @@
 				</div>
 			</td>
 			<td>
-				{{ challan.tutorials.all.0.user.first_name }} {{ challan.tutorials.all.0.user.last_name }}
+				{{ honorarium.tutorials.all.0.user.first_name }} {{ honorarium.tutorials.all.0.user.last_name }}
 			</td>
-			<td>₹ {{ challan.amount }}</td>
-			<td>{{ challan.updated }}</td>
+			<td>₹ {{ honorarium.amount }}</td>
+			<td>{{ honorarium.updated }}</td>
 			<td class="text-center"><button class="btn btn-xs btn-link">View</button></td>
 			<td class="text-center">
 				<form method="POST">
 					{% csrf_token %}
-					<input type="hidden" name="id" value="{{ challan.id}}">
+					<input type="hidden" name="id" value="{{ honorarium.id}}">
 
-					{% if challan.status == 1 %}
+					{% if honorarium.status == 1 %}
 						<input type="submit" name="change_status" class="btn btn-info btn-xs" value="Mark as Forwarded">
-					{% elif challan.status == 2 %}
+					{% elif honorarium.status == 2 %}
 						<input type="submit" name="change_status" class="btn btn-primary btn-xs" value="Mark as Completed">
-					{% elif challan.status == 3 %}
+					{% elif honorarium.status == 3 %}
 						<span class="text-success">Waiting for Confirmation</span>
 					{% else %}
 						<span class="text-success">
@@ -104,7 +104,7 @@
 			</td>
 	{% empty %}
 		<tr class="text-center">
-			<td colspan="6">No challan generated so far.</td>
+			<td colspan="6">No honorarium generated so far.</td>
 		</tr>	
 	{% endfor %}
 	</table>

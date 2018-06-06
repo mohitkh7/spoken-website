@@ -20,7 +20,7 @@ USER_TYPE = (
     (3, 'Script & Video User'),
 )
 
-CHALLAN_STATUS = (
+HONORARIUM_STATUS = (
     (1, 'In Process'),
     (2, 'Forwarded'),
     (3, 'Completed'),
@@ -228,32 +228,32 @@ class TutorialResource(models.Model):
         unique_together = (('tutorial_detail', 'language',),)
 
 
-class PaymentChallan(models.Model):
+class PaymentHonorarium(models.Model):
     amount = models.DecimalField(max_digits = 9, decimal_places = 2, default = 0)
     code = models.CharField(max_length=20, editable = False)
     doc = models.FileField(null = True, blank = True)
-    status = models.PositiveSmallIntegerField(default = 1, choices = CHALLAN_STATUS)
+    status = models.PositiveSmallIntegerField(default = 1, choices = HONORARIUM_STATUS)
     updated = models.DateTimeField(auto_now = True)
 
     def save(self, *args, **kwargs):
         """
-        Generating custom challan code
+        Generating custom Honorarium code
         """
         if not self.id:
             try:
-                last_id = PaymentChallan.objects.order_by('-id')[0].id
+                last_id = PaymentHonorarium.objects.order_by('-id')[0].id
             except IndexError:
                 last_id = 0
             unique_id = last_id+1
             today = date.today()
-            self.code = "#PC/{year}/{month:02n}/{unique_id:04n}".format(year=today.year, month=today.month, unique_id=unique_id)
+            self.code = "#PH/{year}/{month:02n}/{unique_id:05n}".format(year=today.year, month=today.month, unique_id=unique_id)
         super(self.__class__, self).save(*args, **kwargs)
 
 
 class TutorialPayment(models.Model):
     user = models.ForeignKey(User, related_name="contributor",)
     tutorial_resource = models.ForeignKey(TutorialResource)
-    payment_challan = models.ForeignKey('PaymentChallan', related_name = "tutorials", null = True, blank = True, on_delete = models.SET_NULL )
+    payment_honorarium = models.ForeignKey('PaymentHonorarium', related_name = "tutorials", null = True, blank = True, on_delete = models.SET_NULL )
     user_type = models.PositiveSmallIntegerField(default = 3, choices = USER_TYPE)
     seconds = models.PositiveIntegerField(default = 0, help_text="Tutorial duration in seconds")
     amount = models.DecimalField(max_digits = 9, decimal_places = 2, default = 0)
