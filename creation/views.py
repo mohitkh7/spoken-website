@@ -8,7 +8,7 @@ import datetime
 from django.utils import timezone
 from decimal import Decimal
 from urllib import quote, unquote_plus, urlopen
-from itertools import islice, chain
+from itertools import islice
 
 # Third Party Stuff
 from django.conf import settings
@@ -35,43 +35,6 @@ from creation.models import *
 from creation.subtitles import *
 
 from . import services
-
-
-class QuerySetChain(object):
-    """
-    Chains multiple subquerysets (possibly of different models) and behaves as
-    one queryset.  Supports minimal methods needed for use with
-    django.core.paginator.
-    """
-    #Reference - https://stackoverflow.com/questions/431628/how-to-combine-2-or-more-querysets-in-a-django-view
-
-    def __init__(self, *subquerysets):
-        self.querysets = subquerysets
-
-    def count(self):
-        """
-        Performs a .count() for all subquerysets and returns the number of
-        records as an integer.
-        """
-        return sum(qs.count() for qs in self.querysets)
-
-    def _clone(self):
-        "Returns a clone of this queryset chain"
-        return self.__class__(*self.querysets)
-
-    def _all(self):
-        "Iterates records in all subquerysets"
-        return chain(*self.querysets)
-
-    def __getitem__(self, ndx):
-        """
-        Retrieves an item or slice from the chained set of results from all
-        subquerysets.
-        """
-        if type(ndx) is slice:
-            return list(islice(self._all(), ndx.start, ndx.stop, ndx.step or 1))
-        else:
-            return islice(self._all(), ndx, ndx+1).next()
 
 def humansize(nbytes):
     suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
@@ -2937,23 +2900,16 @@ def list_all_due_tutorials(request):
     tr_due = TutorialPayment.objects.filter(status = 1).order_by('user')
     # pagination
     page = request.GET.get('page')
-    tr_due = get_page(tr_due, page, 500)
+    tr_due = get_page(tr_due, page, 100)
     context = {
         'due_tutorials': tr_due,
         'collection': tr_due, # for pagination
     }
     return render(request, 'creation/templates/list_all_due_tutorials.html', context)
 
-def mark_tutorial_as_payment_initiated(tr_id):
-    tr_obj = TutorialResource.objects.get(id = tr_id)
-    tr_obj.payment_status = 1
-    # send notification and mail
-    tr_obj.save()
-    print("success")
-
 def get_video_info_random(filepath):
     '''
-        testing 
+        testing mohit
         temporary function to get video time using its name
     '''
     video_time = 0
@@ -2978,14 +2934,8 @@ def initiate_payment(request):
             tr_pay.save()
         challan.amount = amount
         challan.save()
+        messages.success(request,"Payment Challan (#"+str(challan.code)+") generated for "+str(len(tr_pay_ids))+" tutorials")
         return HttpResponseRedirect(reverse('creation:payment-due-tutorials'))
-
-class TutorialPaymentList(ListView):
-    model = TutorialPayment
-    template_name = 'creation/templates/tutorialpayment_list.html'
-
-    def gettt_queryset(self):
-        return TutorialPayment.objects.filter(id__gte = 20)
 
 def create_payment_instance(request, tr_res):
     '''
@@ -3000,7 +2950,7 @@ def create_payment_instance(request, tr_res):
     tr_video_info = get_video_info(tr_video_path)
     tr_video_duration = tr_video_info.get('total',0)
     '''
-    tr_video_duration = get_video_info_random(tr_res.video)
+    tr_video_duration = get_video_info_random(tr_res.video) # testing_mohit
     try:
         if tr_res.script_user == tr_res.video_user:
             if is_external_contributor(tr_res.script_user):
@@ -3072,7 +3022,6 @@ def list_payment_challan(request):
                 tr_pay = TutorialPayment.objects.filter(status = 2, user = contributor)
                 pay_challan_ids = tr_pay.values_list('payment_challan', flat = True).distinct()
                 challans = challans.filter(id__in = pay_challan_ids)
-                print(pay_challan_ids)
             if status:
                 challans = challans.filter(status = status)
             if s_date:
@@ -3089,43 +3038,3 @@ def list_payment_challan(request):
         'form':form
     }
     return render(request, "creation/templates/list_all_payment_challan.html",context)
-    '''
-    form = PublishedTutorialFilterForm(request.GET)
-    # status = 1 for published and script_user__groups = 5 for external contributors
-    tr_pub = TutorialResource.objects.filter(status = 1, script_user__groups__in = [5,]) 
-    if form.is_valid():
-        start_date = form.cleaned_data['start_date']
-        end_date = form.cleaned_data['end_date']
-        contributor = form.cleaned_data['contributor']
-        foss = form.cleaned_data['foss']
-        language = form.cleaned_data['language']
-        if start_date:
-            tr_pub = tr_pub.filter(publish_at__gte = start_date)
-        if end_date:
-            tr_pub = tr_pub.filter(publish_at__lte = end_date)
-        if contributor:
-            tr_pub = tr_pub.filter(script_user = contributor)
-        if foss:
-            tr_pub = tr_pub.filter(tutorial_detail__foss_id = foss)
-        if language:
-            tr_pub = tr_pub.filter(language = language)
-    #generating summary out of filtered tutorials
-    payment_summary = tr_pub.values('script_user', 'script_user__first_name', 'script_user__last_name').annotate(published_tuorial = Count('script_user'))
-    tr_pub_count = tr_pub.count() # counting number of tutorial published
-    payment_summary_count = payment_summary.count() # number of contributors
-    
-    tr_pub = tr_pub.order_by('-publish_at') # ordering latest first
-    #pagination
-    page = request.GET.get('page')
-    tr_pub = get_page(tr_pub, page, 10)
-    context = {
-        'published_tutorials': tr_pub,
-        'media_url': settings.MEDIA_URL,
-        'count_of_published_tutorials': tr_pub_count,
-        'count_of_contributors': payment_summary_count,
-        'form': form,
-        'collection': tr_pub, # for pagination
-        'payment_summary': payment_summary,
-    }
-    return render(request, 'creation/templates/list_all_published_tutorials.html', context)
-    '''

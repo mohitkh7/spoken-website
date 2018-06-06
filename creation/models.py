@@ -245,14 +245,15 @@ class TutorialPayment(models.Model):
     amount = models.DecimalField(max_digits = 9, decimal_places = 2, default = 0)
     status = models.PositiveSmallIntegerField(default = 1, choices = PAYMENT_STATUS)   
 
+    
     class Meta:
         unique_together = (('tutorial_resource', 'user'),)
 
     def get_duration(self):
+        """Displays time from seconds to hh:mm:ss format"""
         return str(timedelta(seconds = self.seconds))
 
     def save(self, *args, **kwargs):
-
         try:
             pps = PAY_PER_SEC[self.user_type]
             self.amount = pps * self.seconds
