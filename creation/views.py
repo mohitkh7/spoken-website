@@ -2893,8 +2893,11 @@ def load_fosses(request):
         foss_list = FossCategory.objects.filter(id__in = foss_id_list).values_list('id','foss')
     return render(request, 'creation/templates/foss_dropdown_list_options.html',{'foss_list': foss_list, 'existing_foss': existing_foss})
 
+@login_required
 def list_all_due_tutorials(request):
     # initiate payment process for selected tutorials
+    if not is_qualityreviewer(request.user):
+        raise PermissionDenied()
     if request.method == "POST":
         initiate_payment(request)
         # to aviod form resubmit
@@ -2987,10 +2990,13 @@ def create_payment_instance(request, tr_res):
     except IntegrityError as e:
         messages.error(request, " Tutorial already in payment process. Error Detail -- "+str(e))
 
+@login_required
 def list_payment_honorarium(request):
     '''
     to display list of all payment honorariums
     '''
+    if not is_qualityreviewer(request.user):
+        raise PermissionDenied()
     # updating honorarium status
     if request.method == "POST":
         if "change_status" in request.POST:
