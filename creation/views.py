@@ -19,7 +19,7 @@ from django.core.context_processors import csrf
 from django.core.exceptions import PermissionDenied
 from django.core.mail import EmailMultiAlternatives
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
 from django.db.models import Count, F, Q
@@ -1118,7 +1118,8 @@ def tutorials_contributed(request):
                 11: SortableHeader('Additional material', False, '', 'col-center'),
                 12: SortableHeader('Prerequisite', False, '', 'col-center'),
                 13: SortableHeader('Keywords', False, '', 'col-center'),
-                14: SortableHeader('Status', False)
+                14: SortableHeader('Status', False),
+                15: SortableHeader('Payment Status', False, '','col-center'),
             }
             tmp_recs = get_sorted_list(request, tmp_recs, header, raw_get_data)
             ordering = get_field_index(raw_get_data)
@@ -1164,7 +1165,7 @@ def tutorials_pending(request):
                 11: SortableHeader('Additional material', False, '', 'col-center'),
                 12: SortableHeader('Prerequisite', False, '', 'col-center'),
                 13: SortableHeader('Keywords', False, '', 'col-center'),
-                14: SortableHeader('Status', False)
+                14: SortableHeader('Status', False),
             }
             tmp_recs = get_sorted_list(request, tmp_recs, header, raw_get_data)
             ordering = get_field_index(raw_get_data)
@@ -1174,7 +1175,7 @@ def tutorials_pending(request):
                     print counter, tmp_rec.tutorial_detail.tutorial
                 counter += 1
             page = request.GET.get('page')
-            tmp_recs = get_page(tmp_recs, page, 50)
+            tmp_recs = get_page(tmp_recs, page, 300) #testing mohit
         except Exception, e:
             print e
             pass
@@ -3040,3 +3041,27 @@ def list_payment_honorarium(request):
         'form':form
     }
     return render(request, "creation/templates/list_all_payment_honorarium.html",context)
+
+def detail_payment_honorarium(request, hr_id):
+    try:
+        hr = PaymentHonorarium.objects.get(id=hr_id,)
+    except PaymentHonorarium.DoesNotExist:
+        # invalid pay_hr id in url
+        raise Http404
+
+    if hr.tutorials.all()[0].user == request.user:
+        if request.method == "POST":
+            if "confirm" in request.POST:
+                hr.status = 4
+                hr.save()
+                messages.success(request,"Payment Honorarium ("+hr.code+") confirmed as recieved.")
+                next_url = request.GET.get("next",reverse('creation:creationhome'))
+                return HttpResponseRedirect(next_url)
+        context = {
+            'pay_hr': hr,
+        }
+        return render(request,'creation/templates/detail_payment_honorarium.html',context)
+    else:
+        # user not associated with pay_hr
+        raise PermissionDenied()
+
