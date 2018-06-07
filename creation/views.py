@@ -189,6 +189,9 @@ def add_contributor_notification(tr_rec, comp_title, message):
     for con in con_roles:
         ContributorNotification.objects.create(user = con.user, title = comp_title, message = message, tutorial_resource = tr_rec)
 
+def add_payment_notification(user, tr_rec, comp_title, message):
+    ContributorNotification.objects.create(user = user, title = comp_title, message = message, tutorial_resource = tr_rec)
+
 @login_required
 def creation_add_role(request, role_type):
     flag = 1
@@ -3011,10 +3014,18 @@ def list_payment_honorarium(request):
                 elif hr_st == 2:
                     honorarium.status = 3
                     msg_end = 'marked as completed'
+                    add_payment_notification(
+                        honorarium.tutorials.all()[0].user,
+                        honorarium.tutorials.all()[0].tutorial_resource,
+                        "Tutorials Payment Credited", # title
+                        "Honorarium ("+honorarium.code+") worth Rs. "\
+                        +str(honorarium.amount)+" for "+str(len(honorarium.tutorials.all())) \
+                        +" tutorials credited. Kindly Confirm"
+                    )
                 messages.success(request,'Payment Honorarium ('+str(honorarium.code)+') worth Rs. '+str(honorarium.amount)+' '+msg_end)
                 honorarium.save()
-            except:
-                messages.warning(request, "Something went wrong. Couldn't complete your request")
+            except Exception as e:
+                messages.warning(request, "Something went wrong. Couldn't complete your request")  
             # to avoid form resubmission
             return HttpResponseRedirect(reverse('creation:payment-honorarium-list'))
 
