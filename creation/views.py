@@ -9,6 +9,8 @@ from django.utils import timezone
 from decimal import Decimal
 from urllib import quote, unquote_plus, urlopen
 from itertools import islice
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 # Third Party Stuff
 from django.conf import settings
@@ -2934,14 +2936,21 @@ def initiate_payment(request):
     if len(tr_pay_ids) > 0:
         honorarium = PaymentHonorarium.objects.create(status = 1)
         amount = 0
+        tutorials = [] # arr of arr['tut_title','tut_time']
         for tr_pay_id in tr_pay_ids:
             tr_pay = TutorialPayment.objects.get(id = tr_pay_id)
+            tutorials.append([tr_pay.tutorial_resource.tutorial_detail.tutorial, tr_pay.get_duration()])
             tr_pay.status = 2 # from 1 --> 2 i.e due --> initiated
             tr_pay.payment_honorarium = honorarium
             amount += tr_pay.amount
             tr_pay.save()
         honorarium.amount = amount
         honorarium.save()
+        # generating honorarium receipt
+        contributor = str(user.first_name+" "+user.last_name)
+        foss = tr_pay.tutorial_resource.tutorial_detail.foss.foss
+        manager = request.user.first_name+" "+request.user.last_name # currrent logged in user - manager
+        generate_honorarium_receipt(honorarium.code, contributor, foss, honorarium.amount, manager, tutorials)
         messages.success(request,"Payment Honorarium ("+str(honorarium.code)+") worth Rs. \
             "+str(amount)+" for contributor "+user.first_name+" "+user.last_name+" initiated for \
             "+str(len(tr_pay_ids))+" tutorials")
@@ -3060,6 +3069,9 @@ def list_payment_honorarium(request):
     return render(request, "creation/templates/list_all_payment_honorarium.html",context)
 
 def detail_payment_honorarium(request, hr_id):
+    """
+    Contributor can view and confirm honorarium details
+    """
     try:
         hr = PaymentHonorarium.objects.get(id=hr_id,)
     except PaymentHonorarium.DoesNotExist:
@@ -3081,4 +3093,77 @@ def detail_payment_honorarium(request, hr_id):
     else:
         # user not associated with pay_hr
         raise PermissionDenied()
+
+
+def money_as_text(amount):
+    """
+    Display numerical money in text format
+    12345 --> tweleve thousand three hundred forty five
+    """
+    ans = ""
+    small_arr = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Forteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Ninteen']
+    large_arr = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+
+    if amount>100000 or amount<1:
+        return "Invalid Amount"
+    if amount//1000:
+        value = amount//1000
+        if value < 20:
+            ans += small_arr[value]
+        if value>=20 and value <100:
+            large_val = value//10
+            small_val = value%10
+            ans += large_arr[large_val]+" "+small_arr[small_val]
+        ans += " Thousand "
+        amount %= 1000
+
+    if amount//100:
+        value = amount//100
+        ans += small_arr[value]+" Hundred "
+        amount %= 100
+
+    if amount >19:
+        value = amount//10
+        ans += large_arr[value]+" "
+        amount %= 10
+
+    if amount < 20:
+        ans += small_arr[amount]+" "
+    ans += "Only"
+    return ans
+
+def generate_honorarium_receipt(code, contributor,  foss, amount, manager, tutorials):
+
+    doc = Document('media/hr-receipts/honorarium-receipt-template.docx')
+    for table in doc.tables:
+        for index, tut in enumerate(tutorials, 1):
+            row_cells = table.add_row().cells
+            row_cells[0].text = str(index)
+            row_cells[1].text = tut[0]
+            row_cells[2].text = tut[1]
+            row_cells[2].paragraphs[0].paragraph_format.alignment=WD_ALIGN_PARAGRAPH.CENTER
+            
+    for paragraph in doc.paragraphs:
+        if '{{date}}' in paragraph.text:
+            curr_dt = datetime.datetime.now()
+            formated_dt =  curr_dt.strftime("%d %B, %Y") # 01 January, 2018
+            paragraph.text = ""
+            paragraph.add_run("Date : ")
+            paragraph.add_run(formated_dt)
+
+        if '{{contributor}}' in paragraph.text:
+            paragraph.text = ""
+            paragraph.add_run("I request you to kindly approve the honorarium of ")
+            paragraph.add_run("Rs. "+str(amount)+" /-").bold = True
+            paragraph.add_run(" (Rupees "+money_as_text(amount) +" )")
+            paragraph.add_run(" for ")
+            paragraph.add_run(contributor).bold = True
+            paragraph.add_run(", for the creation of the following spoken tutorials on ")
+            paragraph.add_run(foss+".").bold = True
+
+        if '{{manager}}' in paragraph.text:
+            paragraph.text = ""
+            paragraph.add_run(manager)
+    doc.save('media/hr-receipts/'+code+'.docx')
 

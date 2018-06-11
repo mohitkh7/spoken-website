@@ -66,7 +66,7 @@
 	{% for honorarium in honorariums %}
 		<tr>
 			<td>
-				<a class="toggle_tr_detail">{{ honorarium.code }}</a>
+				<a class="toggle_tr_detail">#{{ honorarium.code }}</a>
 				<div class="tr_detail">
 					<ul class="">
 						{% for tut in honorarium.tutorials.all %}
@@ -82,7 +82,7 @@
 			</td>
 			<td>₹ {{ honorarium.amount }}</td>
 			<td>{{ honorarium.updated }}</td>
-			<td class="text-center"><button class="btn btn-xs btn-link">View</button></td>
+			<td class="text-center"><a class="btn btn-xs btn-link" href="/media/hr-receipts/{{ honorarium.code }}.docx" target="blank">View / Download</a></td>
 			<td class="text-center">
 				<form method="POST">
 					{% csrf_token %}
