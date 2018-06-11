@@ -2951,7 +2951,7 @@ def initiate_payment(request):
         foss = tr_pay.tutorial_resource.tutorial_detail.foss.foss
         manager = request.user.first_name+" "+request.user.last_name # currrent logged in user - manager
         generate_honorarium_receipt(honorarium.code, contributor, foss, honorarium.amount, manager, tutorials)
-        messages.success(request,"Payment Honorarium ("+str(honorarium.code)+") worth Rs. \
+        messages.success(request,"Payment Honorarium (#"+str(honorarium.code)+") worth Rs. \
             "+str(amount)+" for contributor "+user.first_name+" "+user.last_name+" initiated for \
             "+str(len(tr_pay_ids))+" tutorials")
 
@@ -3027,11 +3027,11 @@ def list_payment_honorarium(request):
                         honorarium.tutorials.all()[0].user,
                         honorarium.tutorials.all()[0].tutorial_resource,
                         "Tutorials Payment Credited", # title
-                        "Honorarium ("+honorarium.code+") worth Rs. "\
+                        "Honorarium (#"+honorarium.code+") worth Rs. "\
                         +str(honorarium.amount)+" for "+str(len(honorarium.tutorials.all())) \
                         +" tutorials credited. Kindly Confirm"
                     )
-                messages.success(request,'Payment Honorarium ('+str(honorarium.code)+') worth Rs. '+str(honorarium.amount)+' '+msg_end)
+                messages.success(request,'Payment Honorarium (#'+str(honorarium.code)+') worth Rs. '+str(honorarium.amount)+' '+msg_end)
                 honorarium.save()
             except Exception as e:
                 messages.warning(request, "Something went wrong. Couldn't complete your request")  
@@ -3083,7 +3083,7 @@ def detail_payment_honorarium(request, hr_id):
             if "confirm" in request.POST:
                 hr.status = 4
                 hr.save()
-                messages.success(request,"Payment Honorarium ("+hr.code+") confirmed as recieved.")
+                messages.success(request,"Payment Honorarium (#"+hr.code+") confirmed as recieved.")
                 next_url = request.GET.get("next",reverse('creation:creationhome'))
                 return HttpResponseRedirect(next_url)
         context = {
