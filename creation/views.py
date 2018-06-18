@@ -3077,6 +3077,7 @@ def list_payment_honorarium(request):
     }
     return render(request, "creation/templates/list_all_payment_honorarium.html",context)
 
+@login_required
 def detail_payment_honorarium(request, hr_id):
     """
     Contributor can view and confirm his honorarium details
