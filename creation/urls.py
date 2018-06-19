@@ -83,4 +83,11 @@ urlpatterns = patterns('',
     url(r'^report-missing-component/(\d+)/$', 'creation.views.report_missing_component', name="report_missing_component"),
     url(r'^report-missing-component/reply/(\d+)/$', 'creation.views.report_missing_component_reply', name="report_missing_component_reply"),
     url(r'^report-missing-component/list/$', 'creation.views.report_missing_component_list', name="report_missing_component_list"),
+
+    #subscription
+    url(r'^subscription/$', 'creation.views.subscription_index', name="subscription_index"),
+    url(r'^restricted/$', 'creation.views.restricted', name="restricted"),
+    url(r'^subscription/payment/$', 'creation.views.subscription_payment', name="subscription_payment"),
+    url(r'^subscription/manage/$', 'creation.views.subscription_manage', name="subscription_manage"),
+    url(r'^subscription/end/(\d+)/$', 'creation.views.subscription_end', name="subscription_end"),
 )

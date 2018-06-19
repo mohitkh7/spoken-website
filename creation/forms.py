@@ -969,3 +969,12 @@ class UpdateAssignmentForm(forms.Form):
                 self.fields['tutorial'].choices =  [('', '-- Select tutorial --'),] + list(choices)
                 self.fields['tutorial'].widget.attrs = {}
                 self.fields['tutorial'].initial = initial_tut
+
+class SubscriptionPaymentForm(forms.Form):
+    card_number = forms.IntegerField(required=True, min_value=10**15, max_value=(10**16-1))
+    name = forms.CharField(required=True)
+    amount = forms.IntegerField(initial=3000)
+
+    def __init__(self, *args, **kwargs):
+        super(SubscriptionPaymentForm, self).__init__(*args, **kwargs)
+        self.fields['amount'].widget.attrs['readonly'] = True

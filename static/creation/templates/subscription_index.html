@@ -1,0 +1,34 @@
+{% extends 'spoken/templates/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+{% block title %}Spoken Tutorial - Subscription{% endblock %}
+{% block heading %}
+    Spoken Tutorial Subscription
+{% endblock %}
+{% block search %}{% endblock %}
+{% block content %}
+  <!-- what -->
+  <h4><u>What is Platenium Membership Program ?</u></h4>
+  <p>{% lorem 100 w random %}</p>
+  <br>
+  <!-- benefit -->
+  <h4><u>Benefits of Platenium Membership Program ?</u></h4>
+  <ul>
+    <li>{% lorem 30 w random %}</li>
+    <li>{% lorem 20 w random %}</li>
+    <li>{% lorem 25 w random %}</li>
+    <li>{% lorem 40 w random %}</li>
+    <li>{% lorem 10 w random %}</li>
+  </ul>
+  <br>
+  <!-- elgibillity -->
+  <h4><u>Who can be part of this ?</u></h4>
+  <p>{% lorem 1 p %}</p>
+  <p> To become platenium member of spoken tutorial program you need to pay annual subscription fees of <b>Rs. 3000</b></p>
+  <br>
+  <!-- status / button -->
+  <div class="text-center" style="margin:20px">
+    <a href="{% url 'creation:subscription_payment' %}" class="btn btn-lg btn-primary">Become Member</a>
+  </div>
+
+{% endblock %}

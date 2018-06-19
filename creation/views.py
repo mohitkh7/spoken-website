@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import time
+import random
 from django.utils import timezone
 from decimal import Decimal
 from urllib import quote, unquote_plus, urlopen
@@ -11,7 +12,7 @@ from urllib import quote, unquote_plus, urlopen
 # Third Party Stuff
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import Group
 from django.core.context_processors import csrf
 from django.core.exceptions import PermissionDenied
@@ -95,6 +96,14 @@ def is_administrator(user):
 def is_contenteditor(user):
     """Check if the user is having Content-Editor rights"""
     if user.groups.filter(name='Content-Editor').count():
+        return True
+    return False
+
+def is_subscriber(user):
+    """
+        check if user has subscriber rights 
+    """
+    if user.groups.filter(name="Subscriber").count():
         return True
     return False
 
@@ -2818,4 +2827,83 @@ def update_assignment(request):
     }
     context.update(csrf(request))
     return render(request, 'creation/templates/update_assignment.html', context)
+
+@login_required
+def subscription_index(request):
+    """
+        detail of subscription memebership
+    """
+    context = {
+
+    }
+    return render(request, 'creation/templates/subscription_index.html', context)
+
+@login_required
+def subscription_payment(request):
+    """
+        render form to take payment details
+    """
+    if request.method == "POST":
+        form = SubscriptionPaymentForm(request.POST)
+        if form.is_valid():
+            if verify_payment():
+                messages.success(request, "Payment Received. Your Subscription has activated.")
+                subscriber_group = Group.objects.get(name='Subscriber') 
+                subscriber_group.user_set.add(request.user)
+            else:
+                messages.error(request, "Payment Failed. Try Again.")
+            return HttpResponseRedirect('/creation/restricted')
+    else:
+        form = SubscriptionPaymentForm()
+    context = {
+        'form': form
+    }
+    return render(request, 'creation/templates/subscription_payment.html',context)
+
+def restricted(request):
+    """
+    render restricted page visible to subscribed user only
+    """
+    if is_subscriber(request.user):
+        context = {
+
+        }
+        return render(request, 'creation/templates/subscription_restricted.html', context)
+    else:
+        raise PermissionDenied
+
+def verify_payment():
+    """
+    Custom method to stimulate IITB Payment Gateway and process payment
+    """
+    time.sleep(3)
+    res = random.choice([True, False])
+    return res
+
+def subscription_manage(request):
+    """
+    Admin view to view and revoke subscriptions
+    """
+    if is_administrator(request.user) or is_qualityreviewer(request.user):
+        subscribed_user = User.objects.filter(groups__name='Subscriber')
+        context = {
+            'users' : subscribed_user,
+        }
+        return render(request, 'creation/templates/subscription_manage.html', context)
+
+    else:
+        raise PermissionDenied()
+
+def subscription_end(request, user_id):
+    """
+    To end subscription of a user
+    """
+    if is_qualityreviewer(request.user):
+        subscriber_group = Group.objects.get(name='Subscriber')
+        target_user = User.objects.get(id=user_id)
+        subscriber_group.user_set.remove(target_user)
+        messages.success(request, "User subscription terminated successfully")
+        return HttpResponseRedirect('creation/subscription/manage')
+    else:
+        raise PermissionDenied()
 

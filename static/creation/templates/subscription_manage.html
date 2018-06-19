@@ -1,0 +1,32 @@
+{% extends 'spoken/templates/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+{% load creationdata %}
+{% block title %}Manage Subscription{% endblock %}
+{% block heading %}<i class="fa fa-list-ul"></i> Manage Subscription{% endblock %}
+{% block content %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+        {% if not users|length %}
+            <tr>
+                <td colspan="6" class="col-center">List is empty</td>
+            </tr>
+        {% else %}
+            <tr class="active">
+                <th>S.No</th>
+                <th>User</th>
+                <th>Email</th>
+                <th>Action</th>
+            </tr>
+            {% for user in users %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ user.first_name }} {{ user.last_name }} ({{ user}})</td>
+                    <td>{{ user.email }}</td>
+                    <td class="text-center"><a href="{% url 'creation:subscription_end' user.id %}" class="btn btn-sm btn-danger">End Subscription</a></td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+        </table>
+    </div>
+{% endblock %}

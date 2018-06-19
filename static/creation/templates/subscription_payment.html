@@ -1,0 +1,45 @@
+{% extends 'spoken/templates/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+{% block title %}Membership Payment{% endblock %}
+{% block heading %}
+  Memership Payment
+{% endblock %}
+{% block search %}{% endblock %}
+{% block content %}
+  <form role="form" method="post" enctype="multipart/form-data" action="" class="form-horizontal">
+        <div class="row well bs-component">
+            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                <fieldset>
+                    {% csrf_token %}
+                    <div class="form-group">
+    					<label for="{{ form.card_number.id_for_label }}" class="col-lg-4 control-label">Card Number:</label>
+                        <div class="col-lg-8">
+                            {% render_field form.card_number class+="form-control card_number" tabindex="1" %}
+                            {{ form.card_number.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.name.id_for_label }}" class="col-lg-4 control-label">Name on Card:</label>
+                        <div class="col-lg-8">
+                            {% render_field form.name class+="form-control name" tabindex="1" %}
+                            {{ form.name.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.amount.id_for_label }}" class="col-lg-4 control-label">Amount:</label>
+                        <div class="col-lg-8">
+                            {% render_field form.amount class+="form-control amount disabled" tabindex="1" %}
+                            {{ form.amount.errors }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-lg-8 col-lg-offset-4">
+                            <input type="submit" class="btn btn-primary" value="Pay Now"  tabindex="6" />
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </form>
+{% endblock %}
